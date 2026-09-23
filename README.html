@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Off-Grid — E2EE Campus Chat</title>
+    <style>
+        /* ── Reset & Base ─────────────────────────────────────────── */
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        :root {
+            --bg:       #0d1117;
+            --surface:  #161b22;
+            --border:   #30363d;
+            --text:     #c9d1d9;
+            --heading:  #e6edf3;
+            --accent:   #58a6ff;
+            --green:    #3fb950;
+            --orange:   #d29922;
+            --red:      #f85149;
+            --purple:   #bc8cff;
+            --radius:   10px;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.7;
+            padding: 2rem 1rem;
+        }
+        .container { max-width: 960px; margin: 0 auto; }
+
+        /* ── Hero ─────────────────────────────────────────────────── */
+        .hero {
+            text-align: center;
+            padding: 3.5rem 1rem 2.5rem;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 2.5rem;
+        }
+        .hero-icon {
+            font-size: 4rem;
+            margin-bottom: .5rem;
+            display: block;
+        }
+        .hero h1 {
+            font-size: 2.6rem;
+            font-weight: 800;
+            color: var(--heading);
+            letter-spacing: -1px;
+        }
+        .hero h1 span { color: var(--accent); }
+        .hero .tagline {
+            font-size: 1.15rem;
+            color: #8b949e;
+            margin-top: .5rem;
+        }
+        .badges { margin-top: 1.2rem; display: flex; gap: .6rem; justify-content: center; flex-wrap: wrap; }
+        .badge {
+            display: inline-block;
+            padding: .25rem .75rem;
+            border-radius: 999px;
+            font-size: .78rem;
+            font-weight: 600;
+            letter-spacing: .3px;
+        }
+        .badge-java   { background: #d29922; color: #0d1117; }
+        .badge-e2ee   { background: #3fb950; color: #0d1117; }
+        .badge-sqlite  { background: #58a6ff; color: #0d1117; }
+        .badge-offgrid { background: #f85149; color: #0d1117; }
+        .badge-swing   { background: #bc8cff; color: #0d1117; }
+
+        /* ── Section ──────────────────────────────────────────────── */
+        section { margin-bottom: 2.8rem; }
+        section h2 {
+            font-size: 1.55rem;
+            color: var(--heading);
+            border-bottom: 2px solid var(--border);
+            padding-bottom: .45rem;
+            margin-bottom: 1.1rem;
+        }
+        section h2 .emoji { margin-right: .45rem; }
+        section h3 {
+            font-size: 1.15rem;
+            color: var(--accent);
+            margin: 1.2rem 0 .5rem;
+        }
+        p, li { color: var(--text); }
+
+        /* ── Feature Grid ─────────────────────────────────────────── */
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 1rem;
+        }
+        .feature-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 1.3rem;
+            transition: border-color .2s;
+        }
+        .feature-card:hover { border-color: var(--accent); }
+        .feature-card .icon { font-size: 1.8rem; margin-bottom: .4rem; display: block; }
+        .feature-card h3 { margin: 0 0 .35rem; color: var(--heading); font-size: 1.05rem; }
+        .feature-card p  { font-size: .92rem; color: #8b949e; }
+
+        /* ── Code Block ───────────────────────────────────────────── */
+        pre {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 1.1rem 1.3rem;
+            overflow-x: auto;
+            font-size: .88rem;
+            line-height: 1.65;
+            margin: .75rem 0;
+        }
+        code { font-family: 'Cascadia Code', 'Fira Code', 'JetBrains Mono', Consolas, monospace; color: var(--accent); }
+        pre code { color: var(--text); }
+        .cmd-comment { color: #6e7681; }
+
+        /* ── Table ────────────────────────────────────────────────── */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: .75rem 0 1rem;
+        }
+        th, td {
+            text-align: left;
+            padding: .6rem .9rem;
+            border: 1px solid var(--border);
+        }
+        th {
+            background: var(--surface);
+            color: var(--heading);
+            font-weight: 600;
+        }
+        td code {
+            background: #1c2128;
+            padding: .15rem .4rem;
+            border-radius: 4px;
+            font-size: .85rem;
+        }
+
+        /* ── Architecture Diagram ─────────────────────────────────── */
+        .arch-box {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 1.5rem;
+            font-family: 'Cascadia Code', Consolas, monospace;
+            font-size: .82rem;
+            line-height: 1.8;
+            overflow-x: auto;
+            white-space: pre;
+            text-align: center;
+            color: var(--text);
+        }
+        .arch-box .hl-green  { color: var(--green); font-weight: 700; }
+        .arch-box .hl-blue   { color: var(--accent); font-weight: 700; }
+        .arch-box .hl-orange { color: var(--orange); font-weight: 700; }
+        .arch-box .hl-purple { color: var(--purple); font-weight: 700; }
+        .arch-box .hl-red    { color: var(--red); font-weight: 700; }
+
+        /* ── Callout ──────────────────────────────────────────────── */
+        .callout {
+            border-left: 4px solid var(--accent);
+            background: var(--surface);
+            border-radius: 0 var(--radius) var(--radius) 0;
+            padding: .9rem 1.2rem;
+            margin: 1rem 0;
+            font-size: .93rem;
+        }
+        .callout.warning { border-left-color: var(--orange); }
+        .callout strong  { color: var(--heading); }
+
+        /* ── Lists ────────────────────────────────────────────────── */
+        ul, ol { padding-left: 1.5rem; margin: .5rem 0; }
+        li { margin-bottom: .3rem; }
+
+        /* ── Footer ───────────────────────────────────────────────── */
+        footer {
+            text-align: center;
+            padding: 2rem 0 1rem;
+            border-top: 1px solid var(--border);
+            color: #484f58;
+            font-size: .85rem;
+        }
+        footer a { color: var(--accent); text-decoration: none; }
+        footer a:hover { text-decoration: underline; }
+
+        /* ── Phase Timeline ───────────────────────────────────────── */
+        .timeline { position: relative; padding-left: 2rem; }
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: .55rem;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: var(--border);
+        }
+        .timeline-item { position: relative; margin-bottom: 1.5rem; }
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -1.55rem;
+            top: .55rem;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--accent);
+            border: 2px solid var(--bg);
+        }
+        .timeline-item.done::before  { background: var(--green); }
+        .timeline-item.wip::before   { background: var(--orange); }
+        .timeline-item h3 { margin: 0 0 .3rem; font-size: 1rem; color: var(--heading); }
+        .timeline-item p  { font-size: .9rem; color: #8b949e; margin: 0; }
+        .phase-badge {
+            display: inline-block;
+            font-size: .7rem;
+            font-weight: 700;
+            padding: .1rem .5rem;
+            border-radius: 999px;
+            margin-left: .5rem;
+            vertical-align: middle;
+        }
+        .phase-done { background: var(--green); color: #0d1117; }
+        .phase-wip  { background: var(--orange); color: #0d1117; }
+        .phase-todo { background: var(--border); color: var(--text); }
+    </style>
+</head>
+<body>
+<div class="container">
+
+    <!-- ════════════════════════════════════════════════════════════ -->
+    <!--  HERO                                                       -->
+    <!-- ════════════════════════════════════════════════════════════ -->
+    <header class="hero">
+        <span class="hero-icon">📡</span>
+        <h1>OFF-<span>GRID</span></h1>
+        <p class="tagline">End-to-End Encrypted Campus Chat &mdash; No Internet. No Servers. No Compromises.</p>
+        <div class="badges">
+            <span class="badge badge-java">Java 17+</span>
+            <span class="badge badge-e2ee">AES-256-GCM E2EE</span>
+            <span class="badge badge-sqlite">SQLite</span>
+            <span class="badge badge-offgrid">100 % Off-Grid</span>
+            <span class="badge badge-swing">Swing GUI</span>
+        </div>
+    </header>
+
+    <!-- ════════════════════════════════════════════════════════════ -->
+    <!--  ABOUT                                                      -->
+    <!-- ════════════════════════════════════════════════════════════ -->
+    <section>
+        <h2><span class="emoji">💡</span>About</h2>
+        <p>
+            <strong>Off-Grid</strong> is a peer-to-peer, end-to-end encrypted messaging system that operates
+            <em>entirely without the internet</em>. Designed for campus environments, it lets two users communicate
+            securely over local Wi-Fi sockets, Bluetooth, or ESP-NOW radio — with all cryptography and storage
+            handled by a pure Java application running on any standard JVM.
+        </p>
+        <div class="callout">
+            <strong>Why Off-Grid?</strong> In disaster scenarios, censorship-heavy environments, or simply in campus dead-zones,
+            internet-dependent messengers fail. Off-Grid keeps you connected when everything else goes dark.
+        </div>
+    </section>
+
+    <!-- ════════════════════════════════════════════════════════════ -->
+    <!--  FEATURES                                                   -->
+    <!-- ════════════════════════════════════════════════════════════ -->
+    <section>
+        <h2><span class="emoji">✨</span>Key Features</h2>
+        <div class="feature-grid">
+            <div class="feature-card">
+                <span class="icon">🔐</span>
+                <h3>True E2EE</h3>
+                <p>AES-256-GCM encryption via Java Cryptography Architecture (JCA). Messages are stored as ciphertext — even a stolen database is useless without the key.</p>
+            </div>
+            <div class="feature-card">
+                <span class="icon">📴</span>
+                <h3>Zero Internet</h3>
+                <p>Communicates over direct Wi-Fi sockets, Bluetooth RFCOMM, or ESP-NOW radio. No routers, no servers, no cloud.</p>
+            </div>
+            <div class="feature-card">
+                <span class="icon">🗄️</span>
+                <h3>Local SQLite Storage</h3>
+                <p>Chat history persists in an embedded <code>chat_store.db</code> file with WAL journaling for safe, fast writes.</p>
+            </div>
+            <div class="feature-card">
+                <span class="icon">🖥️</span>
+                <h3>Swing GUI + CLI</h3>
+                <p>A clean Swing desktop frontend plus a lightweight CLI demo — choose whichever interface fits your workflow.</p>
+            </div>
+            <div class="feature-card">
+                <span class="icon">📦</span>
+                <h3>Single Fat JAR</h3>
+                <p>Maven Shade plugin bundles everything into one portable <code>chat-app.jar</code>. Just <code>java -jar</code> and go.</p>
+            </div>
+            <div class="feature-card">
+                <span class="icon">⚡</span>
+                <h3>Multi-threaded</h3>
+                <p>Reader, Writer, and UI threads run concurrently via <code>ExecutorService</code> — no lag, no blocking.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- ════════════════════════════════════════════════════════════ -->
+    <!--  ARCHITECTURE                                               -->
+    <!-- ════════════════════════════════════════════════════════════ -->
+    <section>
+        <h2><span class="emoji">🏗️</span>Architecture</h2>
+        <div class="arch-box">
+<span class="hl-green">┌─────────────────────────────────────────────────────────────────┐</span>
+<span class="hl-green">│                      LAPTOP  A  (JVM)                           │</span>
+<span class="hl-green">│                                                                 │</span>
+<span class="hl-green">│   ┌──────────┐    ┌──────────────┐    ┌────────────────────┐    │</span>
+<span class="hl-green">│   │</span> <span class="hl-blue">Swing GUI</span>  <span class="hl-green">│───▶│</span> <span class="hl-orange">AES-256-GCM</span>  <span class="hl-green">│───▶│</span> <span class="hl-purple">SQLite (chat_store)</span> <span class="hl-green">│    │</span>
+<span class="hl-green">│   │</span> <span class="hl-blue">/ CLI REPL</span> <span class="hl-green">│    │</span> <span class="hl-orange">Encrypt/Dec.</span> <span class="hl-green">│    │</span> <span class="hl-purple">JDBC + WAL mode</span>    <span class="hl-green">│    │</span>
+<span class="hl-green">│   └──────────┘    └──────┬───────┘    └────────────────────┘    │</span>
+<span class="hl-green">│                          │                                      │</span>
+<span class="hl-green">│                          ▼                                      │</span>
+<span class="hl-green">│              ┌───────────────────────┐                          │</span>
+<span class="hl-green">│              │</span> <span class="hl-red">Transport Layer</span>        <span class="hl-green">│                          │</span>
+<span class="hl-green">│              │</span> Wi-Fi Socket / BLE /  <span class="hl-green">│                          │</span>
+<span class="hl-green">│              │</span> Serial → ESP-NOW      <span class="hl-green">│                          │</span>
+<span class="hl-green">│              └───────────┬───────────┘                          │</span>
+<span class="hl-green">└──────────────────────────┼──────────────────────────────────────┘</span>
+                           │
+               <span class="hl-red">◄─── Encrypted Bytes ───►</span>
+                           │
+<span class="hl-green">┌──────────────────────────┼──────────────────────────────────────┐</span>
+<span class="hl-green">│                      LAPTOP  B  (JVM)                           │</span>
+<span class="hl-green">│                    (mirror architecture)                        │</span>
+<span class="hl-green">└─────────────────────────────────────────────────────────────────┘</span>
+        </div>
+    </section>
+
+    <!-- ════════════════════════════════════════════════════════════ -->
+    <!--  PROJECT STRUCTURE                                          -->
+    <!-- ════════════════════════════════════════════════════════════ -->
+    <section>
+        <h2><span class="emoji">📁</span>Project Structure</h2>
+        <table>
+            <thead>
+                <tr><th>File / Directory</th><th>Purpose</th></tr>
+            </thead>
+            <tbody>
+                <tr><td><code>ChatFrontend.java</code></td><td>Swing GUI — scrollable chat log, send &amp; receive simulation, clear history</td></tr>
+                <tr><td><code>ChatDatabase.java</code></td><td>SQLite JDBC storage layer — schema init, CRUD, WAL mode, ciphertext-at-rest</td></tr>
+                <tr><td><code>ChatDemo.java</code></td><td>Lightweight CLI REPL for quick database testing (<code>/send</code>, <code>/recv</code>, <code>/log</code>, <code>/clear</code>)</td></tr>
+                <tr><td><code>pom.xml</code></td><td>Maven build config — SQLite JDBC dependency, Shade plugin for fat JAR</td></tr>
+                <tr><td><code>sqlite-jdbc-3.46.1.3.jar</code></td><td>Bundled SQLite JDBC driver for compilation without Maven</td></tr>
+                <tr><td><code>docs/</code></td><td>Project documentation, workflow phases, presentation slides</td></tr>
+            </tbody>
+        </table>
+    </section>
+
+    <!-- ════════════════════════════════════════════════════════════ -->
+    <!--  QUICK START                                                -->
+    <!-- ════════════════════════════════════════════════════════════ -->
+    <section>
+        <h2><span class="emoji">🚀</span>Quick Start</h2>
+
+        <h3>Prerequisites</h3>
+        <ul>
+            <li><strong>Java 17+</strong> (JDK) — <a href="https://adoptium.net/" style="color:var(--accent)">Download Adoptium Temurin</a></li>
+            <li><strong>Maven 3.8+</strong> (optional — you can compile manually with <code>javac</code>)</li>
+        </ul>
+
+        <h3>Option A — Compile manually (no Maven)</h3>
+<pre><code><span class="cmd-comment"># Compile all sources</span>
+javac -cp sqlite-jdbc-3.46.1.3.jar -d build ChatDatabase.java ChatFrontend.java ChatDemo.java
+
+<span class="cmd-comment"># Run the Swing GUI</span>
+java -cp "build;sqlite-jdbc-3.46.1.3.jar" chat.ChatFrontend        <span class="cmd-comment"># Windows</span>
+java -cp "build:sqlite-jdbc-3.46.1.3.jar" chat.ChatFrontend        <span class="cmd-comment"># macOS / Linux</span>
+
+<span class="cmd-comment"># Or run the CLI demo</span>
+java -cp "build;sqlite-jdbc-3.46.1.3.jar" chat.ChatDemo             <span class="cmd-comment"># Windows</span>
+java -cp "build:sqlite-jdbc-3.46.1.3.jar" chat.ChatDemo             <span class="cmd-comment"># macOS / Linux</span></code></pre>
+
+        <h3>Option B — Maven build</h3>
+<pre><code><span class="cmd-comment"># Build fat JAR</span>
+mvn clean package
+
+<span class="cmd-comment"># Run</span>
+java -jar target/chat-app.jar</code></pre>
+    </section>
+
+    <!-- ════════════════════════════════════════════════════════════ -->
+    <!--  CLI COMMANDS                                               -->
+    <!-- ════════════════════════════════════════════════════════════ -->
+    <section>
+        <h2><span class="emoji">⌨️</span>CLI Commands (ChatDemo)</h2>
+        <table>
+            <thead>
+                <tr><th>Command</th><th>Description</th></tr>
+            </thead>
+            <tbody>
+                <tr><td><code>/send &lt;text&gt;</code></td><td>Store a simulated outgoing message</td></tr>
+                <tr><td><code>/recv &lt;text&gt;</code></td><td>Store a simulated incoming message from a peer</td></tr>
+                <tr><td><code>/log [n]</code></td><td>Print the last <em>n</em> messages (default 10)</td></tr>
+                <tr><td><code>/count</code></td><td>Show total stored message count</td></tr>
+                <tr><td><code>/clear</code></td><td>Wipe all local chat history</td></tr>
+                <tr><td><code>/quit</code></td><td>Exit the application</td></tr>
+            </tbody>
+        </table>
+    </section>
+
+    <!-- ════════════════════════════════════════════════════════════ -->
+    <!--  DATA FLOW                                                  -->
+    <!-- ════════════════════════════════════════════════════════════ -->
+    <section>
+        <h2><span class="emoji">🔄</span>Data Flow</h2>
+        <h3>Outbound (Sending)</h3>
+        <ol>
+            <li>User types message in the GUI / CLI</li>
+            <li>Java encrypts payload with <strong>AES-256-GCM</strong> (JCA)</li>
+            <li>Ciphertext is framed &amp; chunked into byte segments (&lt; 247 bytes)</li>
+            <li>Chunks stream to peer via Wi-Fi socket / Bluetooth / Serial → ESP-NOW</li>
+        </ol>
+        <h3>Inbound (Receiving)</h3>
+        <ol>
+            <li>Encrypted frame arrives from peer transport</li>
+            <li>Java parses frame headers, reassembles chunks</li>
+            <li>Payload decrypted, 128-bit auth tag verified</li>
+            <li>Plaintext written to local SQLite DB and displayed in chat</li>
+        </ol>
+    </section>
+
+    <!-- ════════════════════════════════════════════════════════════ -->
+    <!--  ROADMAP                                                    -->
+    <!-- ════════════════════════════════════════════════════════════ -->
+    <section>
+        <h2><span class="emoji">🗺️</span>Development Roadmap</h2>
+        <div class="timeline">
+            <div class="timeline-item done">
+                <h3>Phase 1 — Setup &amp; Tooling <span class="phase-badge phase-done">DONE</span></h3>
+                <p>Maven build system, repository structure, SQLite JDBC integration</p>
+            </div>
+            <div class="timeline-item done">
+                <h3>Phase 2 — Architecture &amp; Data Flow <span class="phase-badge phase-done">DONE</span></h3>
+                <p>Byte-level protocol design, outbound/inbound flow mapping</p>
+            </div>
+            <div class="timeline-item wip">
+                <h3>Phase 3 — Transport Layer <span class="phase-badge phase-wip">IN PROGRESS</span></h3>
+                <p>Wi-Fi Ad-hoc sockets, Bluetooth RFCOMM, or ESP-NOW bridge firmware</p>
+            </div>
+            <div class="timeline-item wip">
+                <h3>Phase 4 — JVM App Core <span class="phase-badge phase-wip">IN PROGRESS</span></h3>
+                <p>REPL UI (JLine3), AES-256-GCM crypto, jSerialComm transport, async threading</p>
+            </div>
+            <div class="timeline-item">
+                <h3>Phase 5 — Integration Testing <span class="phase-badge phase-todo">TODO</span></h3>
+                <p>Loopback echo tests, crypto tamper validation, memory benchmarks</p>
+            </div>
+            <div class="timeline-item">
+                <h3>Phase 6 — Field Deployment <span class="phase-badge phase-todo">TODO</span></h3>
+                <p>Fat JAR packaging, outdoor range mapping, Wi-Fi channel tuning</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- ════════════════════════════════════════════════════════════ -->
+    <!--  TRANSPORT MODES                                            -->
+    <!-- ════════════════════════════════════════════════════════════ -->
+    <section>
+        <h2><span class="emoji">📶</span>Transport Modes</h2>
+        <table>
+            <thead>
+                <tr><th>Mode</th><th>Range</th><th>Hardware</th><th>Status</th></tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>Wi-Fi Direct Sockets</strong></td>
+                    <td>~50 m (indoor) / ~100 m (outdoor)</td>
+                    <td>Built-in laptop Wi-Fi</td>
+                    <td><span class="badge badge-e2ee" style="font-size:.7rem">Planned</span></td>
+                </tr>
+                <tr>
+                    <td><strong>Bluetooth RFCOMM</strong></td>
+                    <td>~10–30 m</td>
+                    <td>Built-in laptop Bluetooth</td>
+                    <td><span class="badge badge-e2ee" style="font-size:.7rem">Planned</span></td>
+                </tr>
+                <tr>
+                    <td><strong>ESP-NOW (via ESP32)</strong></td>
+                    <td>100–200 m (LoS)</td>
+                    <td>2× ESP32 dev boards + USB cables</td>
+                    <td><span class="badge badge-e2ee" style="font-size:.7rem">Planned</span></td>
+                </tr>
+            </tbody>
+        </table>
+    </section>
+
+    <!-- ════════════════════════════════════════════════════════════ -->
+    <!--  SECURITY                                                   -->
+    <!-- ════════════════════════════════════════════════════════════ -->
+    <section>
+        <h2><span class="emoji">🛡️</span>Security Model</h2>
+        <div class="feature-grid" style="grid-template-columns: 1fr 1fr;">
+            <div class="feature-card">
+                <h3>Encryption</h3>
+                <ul>
+                    <li><code>AES/GCM/NoPadding</code> — 256-bit key</li>
+                    <li>128-bit authentication tag per message</li>
+                    <li>Standard <code>javax.crypto.Cipher</code> (JCA)</li>
+                </ul>
+            </div>
+            <div class="feature-card">
+                <h3>Key Management</h3>
+                <ul>
+                    <li><code>javax.crypto.KeyGenerator</code> for AES-256</li>
+                    <li>Java KeyStore (PKCS12) for persistent storage</li>
+                    <li>Keys never leave the local machine</li>
+                </ul>
+            </div>
+        </div>
+        <div class="callout warning" style="margin-top:1rem;">
+            <strong>⚠️ Current Phase Note:</strong> The current codebase uses Base64-encoded plaintext as a placeholder
+            for ciphertext. This is intentional — the real AES-256-GCM layer will replace this in Phase 4, Task 4.3.
+            <strong>Do not deploy the current demo as a secure messenger.</strong>
+        </div>
+    </section>
+
+    <!-- ════════════════════════════════════════════════════════════ -->
+    <!--  DATABASE SCHEMA                                            -->
+    <!-- ════════════════════════════════════════════════════════════ -->
+    <section>
+        <h2><span class="emoji">🗃️</span>Database Schema</h2>
+<pre><code>CREATE TABLE IF NOT EXISTS messages (
+    id               INTEGER PRIMARY KEY AUTOINCREMENT,
+    sender_id        TEXT    NOT NULL,
+    direction        TEXT    NOT NULL CHECK (direction IN ('IN','OUT')),
+    timestamp_epoch  INTEGER NOT NULL,
+    ciphertext_b64   TEXT    NOT NULL,     <span class="cmd-comment">-- AES-GCM ciphertext (Base64)</span>
+    nonce_b64        TEXT    NOT NULL,     <span class="cmd-comment">-- GCM nonce / IV (Base64)</span>
+    plaintext_cache  TEXT                  <span class="cmd-comment">-- optional convenience cache</span>
+);
+
+CREATE INDEX IF NOT EXISTS idx_messages_ts ON messages(timestamp_epoch);</code></pre>
+        <p style="font-size:.9rem; color:#8b949e; margin-top:.5rem;">
+            Ciphertext is stored at rest — a stolen <code>chat_store.db</code> alone does not expose message content.
+        </p>
+    </section>
+
+    <!-- ════════════════════════════════════════════════════════════ -->
+    <!--  TECH STACK                                                 -->
+    <!-- ════════════════════════════════════════════════════════════ -->
+    <section>
+        <h2><span class="emoji">🧰</span>Tech Stack</h2>
+        <table>
+            <thead>
+                <tr><th>Layer</th><th>Technology</th></tr>
+            </thead>
+            <tbody>
+                <tr><td>Language</td><td>Java 17+ (JVM)</td></tr>
+                <tr><td>GUI Framework</td><td>Java Swing</td></tr>
+                <tr><td>Database</td><td>SQLite via <code>sqlite-jdbc</code> (Xerial)</td></tr>
+                <tr><td>Encryption</td><td>JCA — <code>AES/GCM/NoPadding</code>, 256-bit</td></tr>
+                <tr><td>Key Storage</td><td>Java KeyStore (PKCS12)</td></tr>
+                <tr><td>Build Tool</td><td>Apache Maven + Shade Plugin</td></tr>
+                <tr><td>Transport (planned)</td><td><code>jSerialComm</code>, <code>java.net.Socket</code>, BLE, ESP-NOW</td></tr>
+                <tr><td>Hardware (optional)</td><td>ESP32 development boards</td></tr>
+            </tbody>
+        </table>
+    </section>
+
+    <!-- ════════════════════════════════════════════════════════════ -->
+    <!--  CONTRIBUTING                                               -->
+    <!-- ════════════════════════════════════════════════════════════ -->
+    <section>
+        <h2><span class="emoji">🤝</span>Contributing</h2>
+        <ol>
+            <li>Fork this repository</li>
+            <li>Create your feature branch — <code>git checkout -b feature/awesome</code></li>
+            <li>Commit your changes — <code>git commit -m "Add awesome feature"</code></li>
+            <li>Push to the branch — <code>git push origin feature/awesome</code></li>
+            <li>Open a Pull Request</li>
+        </ol>
+    </section>
+
+    <!-- ════════════════════════════════════════════════════════════ -->
+    <!--  LICENSE                                                    -->
+    <!-- ════════════════════════════════════════════════════════════ -->
+    <section>
+        <h2><span class="emoji">📄</span>License</h2>
+        <p>This project is open source. See the repository for license details.</p>
+    </section>
+
+    <!-- ════════════════════════════════════════════════════════════ -->
+    <!--  FOOTER                                                     -->
+    <!-- ════════════════════════════════════════════════════════════ -->
+    <footer>
+        <p>Built with ☕ Java &amp; 🔐 Cryptography</p>
+        <p style="margin-top:.4rem;">
+            <a href="https://github.com/Raatwik/Off-Grid">GitHub Repository</a>
+        </p>
+    </footer>
+
+</div>
+</body>
+</html>
