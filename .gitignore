@@ -1,0 +1,17 @@
+# Compiled class files
+build/
+*.class
+
+# Database files
+*.db
+*.db-shm
+*.db-wal
+
+# IDE files
+.idea/
+*.iml
+.vscode/
+
+# OS files
+.DS_Store
+Thumbs.db
