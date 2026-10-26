@@ -36,8 +36,11 @@ public class VerifySerialRoundTrip {
         try {
             smallFrameRoundTrip(transport);
             maxSizeFrameRoundTrip(transport);
-            orderedMultiFrameRoundTrip(transport);
+            pacedMultiFrameRoundTrip(transport);
             idleResilience(transport);
+            // Run last: if the echo link can't keep up with a burst, this desynchronizes the
+            // length-prefixed stream permanently and later read()s on this transport will hang.
+            burstMultiFrameRoundTrip(transport);
             System.out.println();
             System.out.println("ALL CHECKS PASSED for " + portName);
         } finally {
@@ -63,7 +66,31 @@ public class VerifySerialRoundTrip {
         System.out.println("[PASS] max-size frame (" + sent.length + " bytes) round-tripped intact, no truncation");
     }
 
-    private static void orderedMultiFrameRoundTrip(ByteTransport transport) throws Exception {
+    /** Writes, then immediately reads back, each frame in turn — one in flight at a time. */
+    private static void pacedMultiFrameRoundTrip(ByteTransport transport) throws Exception {
+        int frameCount = 10;
+        int mismatches = 0;
+        for (int i = 0; i < frameCount; i++) {
+            byte[] sent = new byte[20 + RANDOM.nextInt(MAX_FRAME_LENGTH - 20)];
+            RANDOM.nextBytes(sent);
+            transport.write(sent);
+            byte[] received = transport.read();
+            if (!Arrays.equals(sent, received)) {
+                mismatches++;
+                System.out.println("[DEBUG] paced frame " + i + " mismatch:");
+                System.out.println("  sent     (" + sent.length + " bytes): " + hex(sent));
+                System.out.println("  received (" + received.length + " bytes): " + hex(received));
+            }
+        }
+        check(mismatches + " of " + frameCount + " paced frames mismatched", mismatches == 0);
+        System.out.println("[PASS] " + frameCount + " paced (write-then-read) frames round-tripped intact");
+    }
+
+    /**
+     * Writes all frames back-to-back before reading any of them back, with no pacing/flow
+     * control — stresses whatever buffering exists between the two ends of the wire.
+     */
+    private static void burstMultiFrameRoundTrip(ByteTransport transport) throws Exception {
         int frameCount = 10;
         byte[][] sent = new byte[frameCount][];
         for (int i = 0; i < frameCount; i++) {
@@ -71,11 +98,18 @@ public class VerifySerialRoundTrip {
             RANDOM.nextBytes(sent[i]);
             transport.write(sent[i]);
         }
+        int mismatches = 0;
         for (int i = 0; i < frameCount; i++) {
             byte[] received = transport.read();
-            check("frame " + i + " byte-identical and in order", Arrays.equals(sent[i], received));
+            if (!Arrays.equals(sent[i], received)) {
+                mismatches++;
+                System.out.println("[DEBUG] burst frame " + i + " mismatch:");
+                System.out.println("  sent     (" + sent[i].length + " bytes): " + hex(sent[i]));
+                System.out.println("  received (" + received.length + " bytes): " + hex(received));
+            }
         }
-        System.out.println("[PASS] " + frameCount + " back-to-back frames round-tripped intact and in order");
+        check(mismatches + " of " + frameCount + " burst frames mismatched", mismatches == 0);
+        System.out.println("[PASS] " + frameCount + " back-to-back (burst) frames round-tripped intact and in order");
     }
 
     /** Confirms the Reader/Writer threads block rather than busy-poll while the wire is silent. */
@@ -110,5 +144,13 @@ public class VerifySerialRoundTrip {
         if (!condition) {
             throw new AssertionError("FAILED: " + description);
         }
+    }
+
+    private static String hex(byte[] bytes) {
+        StringBuilder sb = new StringBuilder();
+        for (byte b : bytes) {
+            sb.append(String.format("%02x ", b));
+        }
+        return sb.toString();
     }
 }
