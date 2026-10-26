@@ -18,9 +18,16 @@ import java.io.IOException;
  * {@link ChatEngine} instances together through an in-memory pipe that
  * implements this same interface, with no hardware involved.
  *
- * Each frame is a single, already-delimited unit (one ESP-NOW packet in
- * production) — implementations are not expected to do any additional
- * framing/delimiting of their own.
+ * Each frame handed to {@link #write} is a single logical unit (one
+ * ESP-NOW packet in production), and each frame handed back by {@link
+ * #read} must reconstruct that same unit exactly. ESP-NOW itself delivers
+ * discrete packets, so implementations backed by it need no delimiting of
+ * their own. A raw byte-stream implementation — {@code SerialTransport}'s
+ * direct USB-serial link to the ESP32, which has no such packet boundary —
+ * is the one case where additional on-wire delimiting (e.g. a length
+ * prefix) is implementation-internal plumbing, not a change to what this
+ * interface's callers see: they still get exactly one complete frame back
+ * per {@link #read} call, unchanged.
  */
 public interface ByteTransport extends Closeable {
 
