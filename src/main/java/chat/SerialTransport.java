@@ -56,7 +56,7 @@ public final class SerialTransport implements ByteTransport {
     private final BlockingQueue<Object> inbox = new LinkedBlockingQueue<>();
     private final ExecutorService executor = Executors.newFixedThreadPool(2, DAEMON_THREADS);
     private final AtomicBoolean closed = new AtomicBoolean(false);
-    private final AtomicReference<IOException> writerFailure = new AtomicReference<>();
+    private final AtomicReference<IOException> transportFailure = new AtomicReference<>();
 
     /** Sentinel placed on {@link #inbox} to wake a blocked read() once the transport closes. */
     private static final Object CLOSED_SENTINEL = new Object();
@@ -84,7 +84,9 @@ public final class SerialTransport implements ByteTransport {
 
     @Override
     public void write(byte[] frame) throws IOException {
-        throwIfClosed();
+        if (closed.get()) {
+            throw closedException();
+        }
         outbox.add(frame);
     }
 
@@ -94,7 +96,10 @@ public final class SerialTransport implements ByteTransport {
             Object next = inbox.take();
             if (next == CLOSED_SENTINEL) {
                 inbox.put(CLOSED_SENTINEL); // let any other blocked reader see it too
-                throwIfClosed();
+                // Reaching the sentinel means the Reader loop has permanently stopped — true
+                // regardless of whether close() was called explicitly or the loop exited on
+                // its own (e.g. the port failed), so this always throws, not just when closed.
+                throw closedException();
             }
             return (byte[]) next;
         } catch (InterruptedException e) {
@@ -103,12 +108,10 @@ public final class SerialTransport implements ByteTransport {
         }
     }
 
-    /** Throws if closed — with the Writer thread's actual failure, if that's what caused it. */
-    private void throwIfClosed() throws IOException {
-        if (closed.get()) {
-            IOException cause = writerFailure.get();
-            throw cause != null ? new IOException("transport closed", cause) : new IOException("transport closed");
-        }
+    /** Reports the transport as closed, with whichever side's failure caused it, if any. */
+    private IOException closedException() {
+        IOException cause = transportFailure.get();
+        return cause != null ? new IOException("transport closed", cause) : new IOException("transport closed");
     }
 
     @Override
@@ -121,7 +124,12 @@ public final class SerialTransport implements ByteTransport {
         executor.shutdownNow();
     }
 
-    /** Plain blocking read() loop on the serial InputStream — no event listener, no extra queue. */
+    /**
+     * Plain blocking read() loop on the serial InputStream — no event listener, no extra queue.
+     * However the loop ends (an explicit {@link #close()}, or the port failing on its own),
+     * it always finishes by calling {@link #close()} so {@code closed} and the failure cause
+     * are consistent with the {@link #CLOSED_SENTINEL} that read() callers will see.
+     */
     private void runReaderLoop() {
         try {
             InputStream in = port.getInputStream();
@@ -138,9 +146,9 @@ public final class SerialTransport implements ByteTransport {
                 inbox.add(payload);
             }
         } catch (IOException e) {
-            // Falls through: port closed or became unavailable. Signal readers below.
+            transportFailure.compareAndSet(null, e);
         } finally {
-            inbox.add(CLOSED_SENTINEL);
+            close();
         }
     }
 
@@ -180,7 +188,7 @@ public final class SerialTransport implements ByteTransport {
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         } catch (IOException e) {
-            writerFailure.set(e);
+            transportFailure.compareAndSet(null, e);
             close();
         }
     }
