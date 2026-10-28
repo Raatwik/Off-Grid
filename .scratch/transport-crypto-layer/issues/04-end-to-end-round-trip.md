@@ -6,8 +6,8 @@
 
 **Status:** ready-for-agent
 
-- [ ] Wire `ChatEngine` (01) to `SerialTransport` (02) on both laptops, each laptop's `SerialTransport` connected to its own flashed ESP32 (03).
-- [ ] Send a short, single-chunk message from Laptop A and confirm it arrives decrypted and correct on Laptop B.
+- [x] Wire `ChatEngine` (01) to `SerialTransport` (02) on both laptops, each laptop's `SerialTransport` connected to its own flashed ESP32 (03).
+- [x] Send a short, single-chunk message from Laptop A and confirm it arrives decrypted and correct on Laptop B.
 - [ ] Send a multi-chunk message and confirm it reassembles correctly on the receiving laptop after traveling over the real ESP-NOW link.
 - [ ] Confirm the timeout/failure-marker behavior from ticket 01 still surfaces correctly when a real chunk is lost over the wireless link (e.g. by moving boards out of range mid-send), not just in the in-memory test seam.
 - [ ] Confirm the round trip works with no Wi-Fi router, no Bluetooth, and no internet connection active anywhere in range — only the USB-tethered ESP32 boards and the wireless ESP-NOW hop between them.
@@ -26,3 +26,9 @@ Not yet done (checkboxes left unticked on purpose — the ticket calls for two l
 - Out-of-range mid-send to confirm the timeout / "message incomplete" failure surfaces on a real lost chunk.
 - Confirm with Wi-Fi router, Bluetooth and internet all off.
 - Record any baud/timing findings. None so far at 115200 for 3 chunks; burst/larger messages untested.
+
+Two-laptop test (2026-10-28), Linux laptop + Windows 11 laptop, one flashed ESP32 each: short messages cross in both directions. Ticked: wiring, single-chunk.
+
+Hardware finding (for the last checkbox): on Windows the first attempt sent but received nothing in either direction, while the same two boards paired fine on Linux. Cause: Linux raises DTR when a port is opened, Windows/jSerialComm does not, and the ESP32's native USB CDC stops talking when DTR is low. Fix: `SerialTransport` now calls `port.setDTR()` after open (commit 2b8daf0). RTS is left low on purpose, since DTR/RTS transitions can reset these boards.
+
+Still to do: multi-chunk over the two-laptop link, lost-chunk/out-of-range failure marker, no-Wi-Fi/Bluetooth/internet confirmation.
