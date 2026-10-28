@@ -78,6 +78,9 @@ public final class SerialTransport implements ByteTransport {
         if (!port.openPort()) {
             throw new IOException("Failed to open serial port: " + port.getSystemPortName());
         }
+        // Linux raises DTR on open; Windows does not, and the ESP32's native USB CDC treats a
+        // low DTR as "no host connected" and stops talking. Assert it explicitly (RTS left low).
+        port.setDTR();
         executor.submit(this::runReaderLoop);
         executor.submit(this::runWriterLoop);
     }
