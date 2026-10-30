@@ -124,6 +124,20 @@ public final class ChatEngine implements AutoCloseable {
         }
     }
 
+    /**
+     * Encrypts {@code plaintext} under the shared key with a fresh random nonce, for storing
+     * at rest (the DB's {@code ciphertext_b64}/{@code nonce_b64} columns). Independent of the
+     * wire chunks, which are not retained after send/reassembly.
+     */
+    public SealedText seal(String plaintext) {
+        byte[] nonce = new byte[ChatFrame.NONCE_LENGTH];
+        random.nextBytes(nonce);
+        return new SealedText(encrypt(plaintext.getBytes(StandardCharsets.UTF_8), nonce), nonce);
+    }
+
+    /** Ciphertext (including GCM tag) and the nonce it was produced with. */
+    public record SealedText(byte[] ciphertext, byte[] nonce) {}
+
     @Override
     public void close() {
         closed = true;
