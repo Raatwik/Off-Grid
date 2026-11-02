@@ -4,9 +4,10 @@ setlocal enabledelayedexpansion
 set "SCRIPT_DIR=%~dp0"
 cd /d "%SCRIPT_DIR%"
 
-if /i "%~1"=="app" goto :launch_app
-if /i "%~1"=="gui" goto :launch_app
-if /i "%~1"=="db" goto :launch_db
+set "ARG1=%~1"
+if /i "%ARG1%"=="app" goto :launch_app
+if /i "%ARG1%"=="gui" goto :launch_app
+if /i "%ARG1%"=="db" goto :launch_db
 
 :menu
 cls
@@ -17,6 +18,7 @@ echo  1. Launch Chat App (Swing GUI)
 echo  2. Launch Database Management CLI (ChatDemo)
 echo  3. Exit
 echo ========================================================
+set "CHOICE="
 set /p "CHOICE=Enter choice [1-3]: "
 
 if "%CHOICE%"=="1" goto :launch_app
