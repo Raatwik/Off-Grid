@@ -4,7 +4,8 @@ setlocal enabledelayedexpansion
 set "SCRIPT_DIR=%~dp0"
 cd /d "%SCRIPT_DIR%"
 
-set "JAR=target\chat-app.jar"
+set "JAR=%SCRIPT_DIR%chat-app.jar"
+if not exist "%JAR%" set "JAR=%SCRIPT_DIR%target\chat-app.jar"
 
 where java >nul 2>&1
 if errorlevel 1 (
@@ -15,10 +16,10 @@ if errorlevel 1 (
 
 if exist "%JAR%" goto :jar_ready
 
-echo [INFO] %JAR% not found. Attempting to build with Maven...
+echo [INFO] chat-app.jar not found. Attempting to build with Maven...
 where mvn >nul 2>&1
 if errorlevel 1 (
-    echo [ERROR] %JAR% not found and Maven (mvn) is not in PATH.
+    echo [ERROR] chat-app.jar not found and Maven (mvn) is not in PATH.
     echo Please build the project first using 'mvn package' or your IDE.
     pause
     exit /b 1
@@ -29,6 +30,7 @@ if errorlevel 1 (
     pause
     exit /b 1
 )
+if exist "%SCRIPT_DIR%target\chat-app.jar" set "JAR=%SCRIPT_DIR%target\chat-app.jar"
 
 :jar_ready
 set "PORT=%~1"
