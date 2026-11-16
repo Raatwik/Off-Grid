@@ -6,7 +6,7 @@ Designed for emergency scenarios, campus connectivity during network outages, an
 
 ---
 
-## Architecture Overview
+## Architecture Overview:
 
 ```text
 [ Laptop A (Java/Swing) ] ──(USB Serial)──> [ ESP32 A ]
